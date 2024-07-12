@@ -50,7 +50,14 @@ public class BooleanAnalyzer implements Analyzer<BooleanAnalyzerResult> {
 
     public static final String MEASURE_LEAST_FREQUENT = "Least frequent";
     public static final String MEASURE_MOST_FREQUENT = "Most frequent";
-    public static final String VALUE_COMBINATION_COLUMN_FREQUENCY = "Frequency";
+
+
+    /*
+    Long Identifier
+    I have changed the name from VALUE_COMBINATION_COLUMN_FREQUENCY to COLUMN_FREQUENCY
+    I dont really know what "technique" refactoring a long identifier is besides making the var name more concise
+     */
+    public static final String COLUMN_FREQUENCY = "Frequency";
     public static final String MEASURE_FALSE_COUNT = "False count";
     public static final String MEASURE_TRUE_COUNT = "True count";
     public static final String MEASURE_NULL_COUNT = "Null count";
@@ -166,7 +173,7 @@ public class BooleanAnalyzer implements Analyzer<BooleanAnalyzerResult> {
             for (final InputColumn<Boolean> column : _columns) {
                 columnDimension.addCategory(column.getName());
             }
-            columnDimension.addCategory(VALUE_COMBINATION_COLUMN_FREQUENCY);
+            columnDimension.addCategory(COLUMN_FREQUENCY);
 
             valueCombinationCrosstab = new Crosstab<>(Number.class, columnDimension, measureDimension);
 
@@ -192,7 +199,7 @@ public class BooleanAnalyzer implements Analyzer<BooleanAnalyzerResult> {
                 final ValueCombination<Boolean> valueCombination = entry.getKey();
                 final RowAnnotation annotation = entry.getValue();
 
-                nav.where(columnDimension, VALUE_COMBINATION_COLUMN_FREQUENCY);
+                nav.where(columnDimension, COLUMN_FREQUENCY);
                 nav.put(annotation.getRowCount());
                 nav.attach(new AnnotatedRowsResult(annotation, _annotationFactory, _columns));
 
