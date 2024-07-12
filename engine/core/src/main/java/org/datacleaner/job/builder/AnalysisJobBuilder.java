@@ -817,13 +817,37 @@ public final class AnalysisJobBuilder implements Closeable {
     public AnalysisJob toAnalysisJob(final boolean validate) throws IllegalStateException {
         return toAnalysisJob(validate, new AnalysisJobImmutabilizer());
     }
-
+    /*
+    To refactor toAnalysisJob I moved the various jobs that were being completed to separate methods,
+    so that each method can follow the SRP.
+    Moved validation,analyzer job,filter job to separate methods.
+     */
     protected AnalysisJob toAnalysisJob(final boolean validate, final AnalysisJobImmutabilizer immutabilizer)
             throws IllegalStateException {
+        validateConfiguration(validate);
+
+        final Collection<FilterJob> filterJobs = createFilterJobs(validate, immutabilizer);
+
+        final Collection<TransformerJob> transformerJobs = createTransformerJobs(validate, immutabilizer);
+
+        final Collection<AnalyzerJob> analyzerJobs = createAnalyzerJobs(validate, immutabilizer);
+
+        final Datastore datastore = getDatastore();
+        final AnalysisJobMetadata metadata = (_analysisJobMetadata == null) ? createMetadata() : _analysisJobMetadata;
+
+        return new ImmutableAnalysisJob(metadata, datastore, _sourceColumns, filterJobs, transformerJobs, analyzerJobs);
+    }
+
+    // Extracted validation logic to a separate method
+    private void validateConfiguration(final boolean validate) throws IllegalStateException {
         if (validate && !isConfigured(true)) {
             throw new IllegalStateException("Analysis job is not correctly configured");
         }
+    }
 
+    // Extracted filter job creation logic to a separate method
+    private Collection<FilterJob> createFilterJobs(final boolean validate, final AnalysisJobImmutabilizer immutabilizer)
+            throws IllegalStateException {
         final Collection<FilterJob> filterJobs = new LinkedList<>();
         for (final FilterComponentBuilder<?, ?> fjb : _filterComponentBuilders) {
             try {
@@ -834,13 +858,22 @@ public final class AnalysisJobBuilder implements Closeable {
                         "Could not create filter job from builder: " + fjb + ", (" + e.getMessage() + ")", e);
             }
         }
+        return filterJobs;
+    }
 
+    // Extracted transformer job creation logic to a separate method
+    private Collection<TransformerJob> createTransformerJobs(final boolean validate, final AnalysisJobImmutabilizer immutabilizer) {
         final Collection<TransformerJob> transformerJobs = new LinkedList<>();
         for (final TransformerComponentBuilder<?> tjb : _transformerComponentBuilders) {
             final TransformerJob componentJob = immutabilizer.getOrCreateTransformerJob(validate, tjb);
             transformerJobs.add(componentJob);
         }
+        return transformerJobs;
+    }
 
+    // Extracted analyzer job creation logic to a separate method
+    private Collection<AnalyzerJob> createAnalyzerJobs(final boolean validate, final AnalysisJobImmutabilizer immutabilizer)
+            throws IllegalStateException {
         final Collection<AnalyzerJob> analyzerJobs = new LinkedList<>();
         for (final AnalyzerComponentBuilder<?> ajb : _analyzerComponentBuilders) {
             try {
@@ -851,18 +884,9 @@ public final class AnalysisJobBuilder implements Closeable {
                         "Could not create analyzer job from builder: " + ajb + ", (" + e.getMessage() + ")", e);
             }
         }
-
-        final Datastore datastore = getDatastore();
-
-        final AnalysisJobMetadata metadata;
-        if (_analysisJobMetadata == null) {
-            metadata = createMetadata();
-        } else {
-            metadata = _analysisJobMetadata;
-        }
-
-        return new ImmutableAnalysisJob(metadata, datastore, _sourceColumns, filterJobs, transformerJobs, analyzerJobs);
+        return analyzerJobs;
     }
+
 
     public AnalysisJobMetadata createMetadata() {
         final MutableAnalysisJobMetadata mutableAnalysisJobMetadata = getAnalysisJobMetadata();
